@@ -1,0 +1,11 @@
+langchain
+langchain-core
+langchain-community
+langchain-groq
+huggingface_hub
+fastapi
+uvicorn
+python-dotenv
+Pillow
+requests
+pydantic

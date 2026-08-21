@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Generator | LangChain + FLUX.1 Schnell</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="background-globes">
+        <div class="globe globe-1"></div>
+        <div class="globe globe-2"></div>
+        <div class="globe globe-3"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Navigation Header -->
+        <header class="header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>FLUX Agent AI</h1>
+                    <span class="badge">LangChain + FLUX.1 Schnell</span>
+                </div>
+            </div>
+            
+            <div class="status-pills">
+                <div class="status-pill" id="hf-status" title="Hugging Face API Token status">
+                    <span class="dot yellow"></span>
+                    <span class="label">HF Token: <strong id="hf-text">Checking...</strong></span>
+                </div>
+                <div class="status-pill" id="groq-status" title="Groq LLM API Key status">
+                    <span class="dot yellow"></span>
+                    <span class="label">Groq LLM: <strong id="groq-text">Checking...</strong></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Hero & Prompt Generator -->
+        <main class="main-content">
+            <section class="hero-section">
+                <h2 class="hero-title">Turn your ideas into images with AI</h2>
+                <p class="hero-subtitle">Powered by LangChain prompt engineering agent & FLUX.1 Schnell model</p>
+                
+                <!-- Setup Warning Banner (if keys missing) -->
+                <div id="setup-warning" class="setup-warning hidden">
+                    <i class="fa-solid fa-triangle-exclamation warning-icon"></i>
+                    <div class="warning-content">
+                        <h4>API Configuration Required</h4>
+                        <p>Please configure your <code>HF_TOKEN</code> and <code>GROQ_API_KEY</code> in the project <code>.env</code> file to generate real images.</p>
+                    </div>
+                </div>
+
+                <!-- Input Card -->
+                <div class="glass-card prompt-card">
+                    <div class="input-header">
+                        <label for="prompt-input"><i class="fa-solid fa-pen-nib"></i> Prompt Description</label>
+                        <span class="char-counter" id="char-counter">0 / 1000</span>
+                    </div>
+
+                    <div class="textarea-wrapper">
+                        <textarea 
+                            id="prompt-input" 
+                            placeholder="Describe the image you want to create... (e.g. 'A modern Indian farmer using an AI agricultural tablet in a crop field')"
+                            maxlength="1000"
+                            rows="4"
+                        ></textarea>
+                    </div>
+
+                    <!-- Quick Suggestion Chips -->
+                    <div class="prompt-suggestions">
+                        <span class="suggestions-label"><i class="fa-solid fa-lightbulb"></i> Try these:</span>
+                        <button class="chip-btn" data-prompt="A realistic Indian farmer working in a smart agricultural field with golden hour lighting">
+                            🌾 Smart Agriculture
+                        </button>
+                        <button class="chip-btn" data-prompt="A futuristic cyberpunk city at sunset with neon reflections and flying cars">
+                            🌃 Cyberpunk City
+                        </button>
+                        <button class="chip-btn" data-prompt="A luxury black car in a cinematic dark studio with dramatic rim lighting">
+                            🏎️ Luxury Studio Car
+                        </button>
+                        <button class="chip-btn" data-prompt="A cute astronaut cat walking on mars with Earth in the background, digital painting">
+                            🚀 Astronaut Cat
+                        </button>
+                    </div>
+
+                    <!-- Submit Action Button -->
+                    <div class="action-row">
+                        <button id="generate-btn" class="btn btn-primary btn-generate">
+                            <span class="btn-text"><i class="fa-solid fa-sparkles"></i> Generate Image</span>
+                            <span class="btn-spinner hidden"><i class="fa-solid fa-circle-notch fa-spin"></i></span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading & Multi-stage Progress State -->
+            <section id="loading-section" class="loading-section hidden">
+                <div class="glass-card loading-card">
+                    <div class="loading-header">
+                        <div class="spinner-large"></div>
+                        <h3>Creating your image...</h3>
+                        <p class="loading-subtext">LangChain Agent is processing your request</p>
+                    </div>
+
+                    <div class="progress-steps">
+                        <div class="step-item active" id="step-1">
+                            <div class="step-icon"><i class="fa-solid fa-brain"></i></div>
+                            <div class="step-info">
+                                <h4>Understanding request</h4>
+                                <span class="step-status">Analyzing intent...</span>
+                            </div>
+                            <div class="step-check"><i class="fa-solid fa-check"></i></div>
+                        </div>
+
+                        <div class="step-item" id="step-2">
+                            <div class="step-icon"><i class="fa-solid fa-wand-magic"></i></div>
+                            <div class="step-info">
+                                <h4>Optimizing prompt</h4>
+                                <span class="step-status">Enhancing prompt via Groq LLM...</span>
+                            </div>
+                            <div class="step-check"><i class="fa-solid fa-check"></i></div>
+                        </div>
+
+                        <div class="step-item" id="step-3">
+                            <div class="step-icon"><i class="fa-solid fa-image"></i></div>
+                            <div class="step-info">
+                                <h4>Generating image</h4>
+                                <span class="step-status">Running FLUX.1 Schnell...</span>
+                            </div>
+                            <div class="step-check"><i class="fa-solid fa-check"></i></div>
+                        </div>
+
+                        <div class="step-item" id="step-4">
+                            <div class="step-icon"><i class="fa-solid fa-box-open"></i></div>
+                            <div class="step-info">
+                                <h4>Preparing output</h4>
+                                <span class="step-status">Rendering final image...</span>
+                            </div>
+                            <div class="step-check"><i class="fa-solid fa-check"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Result Display Section -->
+            <section id="result-section" class="result-section hidden">
+                <div class="glass-card result-card">
+                    <div class="result-header">
+                        <h3><i class="fa-solid fa-image-portrait"></i> Generated Image</h3>
+                        <span class="model-tag"><i class="fa-solid fa-bolt"></i> FLUX.1 Schnell</span>
+                    </div>
+
+                    <!-- Image Display Box -->
+                    <div class="image-preview-wrapper">
+                        <img id="generated-image" src="" alt="Generated AI Artwork">
+                        <div class="image-overlay-actions">
+                            <button id="fullscreen-btn" class="icon-btn" title="View Fullscreen">
+                                <i class="fa-solid fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Prompt Comparison Details -->
+                    <div class="prompt-details">
+                        <div class="prompt-box">
+                            <div class="prompt-box-header">
+                                <span><i class="fa-solid fa-user"></i> Your Original Prompt</span>
+                            </div>
+                            <p id="result-original-prompt" class="prompt-text"></p>
+                        </div>
+
+                        <div class="prompt-box enhanced-box">
+                            <div class="prompt-box-header">
+                                <span><i class="fa-solid fa-robot"></i> LangChain + Groq Enhanced Prompt</span>
+                                <button id="copy-enhanced-btn" class="copy-btn" title="Copy Enhanced Prompt">
+                                    <i class="fa-solid fa-copy"></i> Copy
+                                </button>
+                            </div>
+                            <p id="result-enhanced-prompt" class="prompt-text"></p>
+                        </div>
+                    </div>
+
+                    <!-- Action Controls -->
+                    <div class="result-actions">
+                        <button id="download-btn" class="btn btn-success">
+                            <i class="fa-solid fa-download"></i> Download Image
+                        </button>
+                        <button id="generate-again-btn" class="btn btn-secondary">
+                            <i class="fa-solid fa-rotate-right"></i> Generate Again
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Banner Section -->
+            <section id="error-section" class="error-section hidden">
+                <div class="glass-card error-card">
+                    <div class="error-icon">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                    </div>
+                    <div class="error-details">
+                        <h3 id="error-title">Generation Failed</h3>
+                        <p id="error-message">An error occurred while generating your image.</p>
+                        <button id="error-dismiss-btn" class="btn btn-secondary">Try Again</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Generation History Section -->
+            <section class="history-section">
+                <div class="section-header">
+                    <h3><i class="fa-solid fa-clock-rotate-left"></i> Generation History</h3>
+                    <button id="clear-history-btn" class="clear-btn" title="Clear all saved history">
+                        <i class="fa-solid fa-trash"></i> Clear History
+                    </button>
+                </div>
+
+                <div id="history-grid" class="history-grid">
+                    <!-- History cards injected dynamically by JS -->
+                </div>
+
+                <div id="history-empty" class="history-empty">
+                    <i class="fa-regular fa-images"></i>
+                    <p>No generated images yet. Create your first image above!</p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>LangChain Agent + FLUX.1 Schnell &bull; Built with FastAPI & Modern Web UI</p>
+        </footer>
+    </div>
+
+    <!-- Image Fullscreen Modal -->
+    <div id="modal" class="modal hidden">
+        <span id="modal-close" class="modal-close">&times;</span>
+        <img id="modal-img" class="modal-content" src="" alt="Fullscreen Image Preview">
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
