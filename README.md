@@ -9,6 +9,9 @@ app_file: app.py
 pinned: false
 ---
 
+<!-- Trigger build update: Gradio 5.16.0 -->
+
+
 # Chitraya AI - LangChain + FLUX.1 Schnell Image Generator
 
 An AI image generation web application powered by **LangChain**, **Groq LLM** (for prompt understanding & optimization), **FLUX.1 Schnell** via Hugging Face Inference API, and a FastAPI backend with a modern glassmorphism frontend.
