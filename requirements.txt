@@ -9,3 +9,4 @@ python-dotenv
 Pillow
 requests
 pydantic
+gradio

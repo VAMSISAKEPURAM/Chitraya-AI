@@ -3,8 +3,9 @@ title: Chitraya AI - FLUX.1 Image Generator
 emoji: 🎨
 colorFrom: indigo
 colorTo: purple
-sdk: docker
-app_port: 7860
+sdk: gradio
+sdk_version: 4.44.0
+app_file: app.py
 pinned: false
 ---
 
@@ -40,6 +41,6 @@ An AI image generation web application powered by **LangChain**, **Groq LLM** (f
 
 4. Run the app:
    ```bash
-   python main.py
+   python app.py
    ```
    Open `http://127.0.0.1:7860` in your browser.
