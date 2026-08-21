@@ -3,9 +3,7 @@ title: Chitraya AI - FLUX.1 Image Generator
 emoji: 🎨
 colorFrom: indigo
 colorTo: purple
-sdk: gradio
-sdk_version: 4.44.0
-app_file: app.py
+sdk: docker
 pinned: false
 ---
 

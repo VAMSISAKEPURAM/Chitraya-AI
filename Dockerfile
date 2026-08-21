@@ -1,16 +1,22 @@
 FROM python:3.11-slim
 
-WORKDIR /app
+# Create user with UID 1000 for Hugging Face Spaces compatibility
+RUN useradd -m -u 1000 user
+USER user
+ENV PATH="/home/user/.local/bin:$PATH"
+
+WORKDIR /home/user/app
 
 # Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --chown=user requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Copy application files
-COPY . .
+COPY --chown=user . .
 
-# Expose Hugging Face Spaces port
+# Expose Hugging Face Spaces default port
 EXPOSE 7860
 
 # Run FastAPI app with Uvicorn
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
+
