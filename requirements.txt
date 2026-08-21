@@ -2,11 +2,12 @@ langchain
 langchain-core
 langchain-community
 langchain-groq
-huggingface_hub
+huggingface_hub>=0.25.0
 fastapi
 uvicorn
 python-dotenv
 Pillow
 requests
 pydantic
-gradio
+gradio>=5.16.0
+
