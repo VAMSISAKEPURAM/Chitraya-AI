@@ -59,13 +59,6 @@ PROMPT_2 = "A futuristic cyberpunk city at sunset with neon reflections and flyi
 PROMPT_3 = "A luxury black sports car in a cinematic dark studio with dramatic neon rim lighting"
 PROMPT_4 = "A cute astronaut cat walking on Mars with Earth visible in the star-filled sky, digital painting"
 
-EXAMPLES_LIST = [
-    [PROMPT_1],
-    [PROMPT_2],
-    [PROMPT_3],
-    [PROMPT_4],
-]
-
 theme = gr.themes.Base(
     primary_hue="violet",
     secondary_hue="purple",

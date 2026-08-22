@@ -18,12 +18,12 @@ logging.basicConfig(
 logger = logging.getLogger("api_server")
 
 app = FastAPI(
-    title="LangChain + FLUX.1 Schnell Image Generator API",
+    title="Chitraya AI - FLUX.1 Schnell Generator API",
     description="API for AI Image Generation using LangChain, Groq LLM, and FLUX.1 Schnell on Hugging Face",
     version="1.0.0"
 )
 
-# Enable CORS for local development and HF Spaces iframe embedding
+# Enable CORS for local testing and iframe embedding
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -37,7 +37,7 @@ class GenerateImageRequest(BaseModel):
 
 @app.get("/api/health")
 async def health_check():
-    """Health check endpoint to verify backend status and configuration."""
+    """Health check endpoint to verify backend status and token configurations."""
     return {
         "status": "online",
         "hf_configured": settings.is_hf_configured(),
@@ -50,7 +50,7 @@ async def health_check():
 async def generate_image(request: GenerateImageRequest):
     """
     Generate an AI image based on user prompt.
-    Uses LangChain + Groq LLM to understand & optimize prompt,
+    Uses LangChain + Groq LLM to optimize the prompt,
     and FLUX.1 Schnell on Hugging Face to generate the image.
     """
     clean_prompt = request.prompt.strip()
@@ -79,7 +79,7 @@ async def generate_image(request: GenerateImageRequest):
         logger.exception("Unexpected error during image generation")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred while generating the image. Please try again."
+            detail=f"Image generation failed: {str(err)}"
         )
 
 # Mount static frontend files
@@ -107,4 +107,3 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 7860))
     host = os.getenv("HOST", "0.0.0.0")
     uvicorn.run("main:app", host=host, port=port, reload=False)
-

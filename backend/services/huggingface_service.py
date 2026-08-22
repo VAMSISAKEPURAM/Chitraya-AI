@@ -3,23 +3,14 @@ import io
 import logging
 import requests
 from PIL import Image
-from typing import Tuple, Dict, Any
+from typing import Tuple
 
 from backend.utils.config import settings
 
 logger = logging.getLogger("huggingface_service")
 
-# Import spaces for ZeroGPU compatibility on HF Spaces.
-# Falls back to a no-op decorator when running locally.
-try:
-    import spaces
-    gpu_decorator = spaces.GPU
-except ImportError:
-    def gpu_decorator(fn):
-        return fn
-
 class HuggingFaceServiceError(Exception):
-    """Custom exception for Hugging Face Service errors with user-friendly messages."""
+    """Custom exception for Hugging Face Inference API operations."""
     def __init__(self, message: str, status_code: int = 500):
         super().__init__(message)
         self.message = message
@@ -37,23 +28,23 @@ class HuggingFaceService:
         """
         if not settings.is_hf_configured():
             raise HuggingFaceServiceError(
-                "Hugging Face API Token (HF_TOKEN) is not configured. Please add your token under Space Settings -> Secrets.",
+                "Hugging Face API Token (HF_TOKEN) is not configured. Please add your token in Space Settings -> Secrets.",
                 status_code=401
             )
 
         token = settings.HF_TOKEN
         model = settings.IMAGE_MODEL
 
-        # Attempt generation using huggingface_hub InferenceClient first, fallback to HTTP requests API
+        # Attempt generation using huggingface_hub InferenceClient first
         try:
             from huggingface_hub import InferenceClient
-            client = InferenceClient(token=token)
             logger.info(f"Sending prompt to Hugging Face InferenceClient (Model: {model})...")
+            client = InferenceClient(token=token)
             
             # FLUX.1 Schnell text-to-image call
             image = client.text_to_image(prompt=prompt, model=model)
             
-            # Convert PIL Image to Base64
+            # Convert PIL Image to Base64 data URI
             buffered = io.BytesIO()
             image.save(buffered, format="PNG")
             img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
@@ -62,7 +53,7 @@ class HuggingFaceService:
             return data_uri, image
 
         except Exception as client_err:
-            logger.warning(f"InferenceClient failed ({client_err}), falling back to direct HTTP API...")
+            logger.warning(f"InferenceClient call failed ({client_err}). Attempting fallback HTTP API request...")
             return HuggingFaceService._generate_via_http(prompt, model, token)
 
     @staticmethod
@@ -76,7 +67,7 @@ class HuggingFaceService:
         payload = {
             "inputs": prompt,
             "parameters": {
-                "guidance_scale": 0.0,  # Schnell is fine-tuned for low step count / 0 guidance scale
+                "guidance_scale": 0.0,
                 "num_inference_steps": 4
             }
         }
@@ -96,7 +87,7 @@ class HuggingFaceService:
 
         if response.status_code == 401:
             raise HuggingFaceServiceError(
-                "Invalid or unauthorized Hugging Face token. Please check HF_TOKEN in your .env file.",
+                "Invalid or unauthorized Hugging Face token. Please check HF_TOKEN under Space Settings -> Secrets.",
                 status_code=401
             )
         elif response.status_code == 429:
@@ -106,11 +97,11 @@ class HuggingFaceService:
             )
         elif response.status_code == 503:
             raise HuggingFaceServiceError(
-                "FLUX.1 Schnell model is currently loading or unavailable on Hugging Face. Please try again shortly.",
+                "FLUX.1 Schnell model is currently loading or busy on Hugging Face. Please try again in 10-20 seconds.",
                 status_code=503
             )
         elif response.status_code != 200:
-            error_msg = f"Hugging Face API error ({response.status_code}): {response.text[:200]}"
+            error_msg = f"Hugging Face API error ({response.status_code}): {response.text[:250]}"
             raise HuggingFaceServiceError(error_msg, status_code=response.status_code)
 
         try:

@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Find root directory and optionally load .env file (for local dev)
+# Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_PATH = BASE_DIR / ".env"
 
@@ -10,6 +10,8 @@ if ENV_PATH.exists():
     load_dotenv(dotenv_path=ENV_PATH)
 
 class Settings:
+    """Dynamic configuration loader with multi-alias support for environment secrets."""
+
     @property
     def HF_TOKEN(self) -> str:
         return (
@@ -17,6 +19,7 @@ class Settings:
             or os.getenv("HUGGINGFACE_HUB_TOKEN")
             or os.getenv("HUGGING_FACE_HUB_TOKEN")
             or os.getenv("HF_API_TOKEN")
+            or os.getenv("HUGGINGFACE_TOKEN")
             or ""
         ).strip()
 

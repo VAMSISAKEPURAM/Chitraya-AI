@@ -29,18 +29,18 @@ class LangChainImageAgent:
     def enhance_prompt_with_groq(self, user_prompt: str) -> str:
         """
         Uses Groq LLM via LangChain to understand intent and enrich the prompt.
-        Falls back to fallback prompt expansion if Groq is unconfigured or unavailable.
+        Falls back to rule-based expansion if Groq is unconfigured or unavailable.
         """
         if not settings.is_groq_configured():
-            logger.info("Groq API Key not configured. Using fallback prompt expansion.")
+            logger.info("Groq API Key not configured. Using rule-based fallback prompt expansion.")
             return self._fallback_prompt_enhancer(user_prompt)
 
         try:
             from langchain_groq import ChatGroq
             logger.info(f"Enhancing prompt using Groq LLM ({settings.GROQ_MODEL})...")
             
-            # Set env var as fallback authentication method
-            os.environ.setdefault("GROQ_API_KEY", settings.GROQ_API_KEY)
+            # Ensure environment variable is set for Groq client
+            os.environ["GROQ_API_KEY"] = settings.GROQ_API_KEY
             
             llm = ChatGroq(
                 model=settings.GROQ_MODEL,
@@ -65,8 +65,8 @@ class LangChainImageAgent:
     def _fallback_prompt_enhancer(self, prompt: str) -> str:
         """Rule-based fallback prompt enhancer when Groq LLM is not active."""
         clean = prompt.strip()
-        if len(clean.split()) < 5:
-            return f"{clean}, cinematic lighting, photorealistic details, high quality, highly detailed composition."
+        if len(clean.split()) < 6:
+            return f"{clean}, cinematic golden hour lighting, photorealistic details, high dynamic range, intricate composition."
         return clean
 
     def generate(self, user_prompt: str) -> Dict[str, Any]:
@@ -78,7 +78,7 @@ class LangChainImageAgent:
         if not clean_prompt:
             raise ValueError("Prompt cannot be empty.")
 
-        logger.info(f"Processing new image generation request for prompt: '{clean_prompt}'")
+        logger.info(f"Processing image generation request for prompt: '{clean_prompt}'")
         
         # Step 1: Groq LLM Prompt Enhancement
         enhanced_prompt = self.enhance_prompt_with_groq(clean_prompt)
@@ -87,7 +87,7 @@ class LangChainImageAgent:
         # Step 2: Invoke Image Generation Tool
         tool_result = flux_image_generation_tool.invoke({"prompt": enhanced_prompt})
 
-        # Step 3: Return Response
+        # Step 3: Return Response Payload
         return {
             "success": True,
             "original_prompt": clean_prompt,
@@ -97,5 +97,5 @@ class LangChainImageAgent:
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
-# Global agent instance
+# Global singleton agent instance
 image_agent = LangChainImageAgent()
