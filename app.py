@@ -1,59 +1,69 @@
 import os
+import io
+import base64
 import spaces
 import gradio as gr
+from PIL import Image
 
 from backend.utils.config import settings
 from backend.agent.image_agent import image_agent
 from backend.services.huggingface_service import HuggingFaceServiceError
 
 # ─── Core Generation Function (ZeroGPU-decorated) ────────────────────────────
-@spaces.GPU
+@spaces.GPU(duration=60)
 def generate_image(prompt: str):
     """
     Main generation pipeline:
-    User Prompt → Groq LLM Enhancement → FLUX.1 Schnell → Base64 Image
-    This function is decorated with @spaces.GPU for ZeroGPU free tier compatibility.
+    User Prompt → Groq LLM Enhancement → FLUX.1 Schnell → Image
+    This function is decorated with @spaces.GPU for ZeroGPU compatibility.
     """
     if not prompt or not prompt.strip():
-        raise gr.Error("Please enter a prompt before generating.")
+        raise gr.Error("Please enter or select a prompt before clicking Generate.")
 
     clean_prompt = prompt.strip()
 
     try:
         result = image_agent.generate(clean_prompt)
     except HuggingFaceServiceError as e:
-        raise gr.Error(f"Image generation failed: {e.message}")
+        raise gr.Error(f"Hugging Face API Error: {e.message}")
     except Exception as e:
-        raise gr.Error(f"Unexpected error: {str(e)}")
+        raise gr.Error(f"Generation Error: {str(e)}")
 
-    # Parse base64 data URI → raw bytes for Gradio Image component
-    data_uri = result["image"]
-    if data_uri.startswith("data:image"):
-        import base64, io
-        from PIL import Image
+    # Parse image data
+    data_uri = result.get("image", "")
+    if isinstance(data_uri, str) and data_uri.startswith("data:image"):
         header, b64data = data_uri.split(",", 1)
         img_bytes = base64.b64decode(b64data)
         image = Image.open(io.BytesIO(img_bytes))
+    elif isinstance(data_uri, Image.Image):
+        image = data_uri
     else:
-        raise gr.Error("Invalid image response from generation service.")
+        raise gr.Error("Failed to parse image from generator output.")
 
     return (
         image,
-        result["enhanced_prompt"],
-        result["original_prompt"],
+        result.get("enhanced_prompt", clean_prompt),
+        result.get("original_prompt", clean_prompt),
     )
 
 def get_status():
-    hf = "✅ Ready" if settings.is_hf_configured() else "❌ HF_TOKEN missing"
-    groq = "✅ Active" if settings.is_groq_configured() else "⚠️ Fallback mode (no Groq key)"
-    return f"**HF Inference API:** {hf}  |  **Groq LLM:** {groq}  |  **Model:** `{settings.IMAGE_MODEL}`"
+    hf_ok = settings.is_hf_configured()
+    groq_ok = settings.is_groq_configured()
+    hf_icon = "🟢 Ready" if hf_ok else "🔴 Missing Secret (HF_TOKEN)"
+    groq_icon = "🟢 Active (LLM prompt expander)" if groq_ok else "🟡 Rule-based mode"
+    return f"**Hugging Face Inference:** {hf_icon} &nbsp;|&nbsp; **Groq Agent:** {groq_icon} &nbsp;|&nbsp; **Model:** `{settings.IMAGE_MODEL}`"
 
-# ─── Gradio UI ────────────────────────────────────────────────────────────────
-EXAMPLE_PROMPTS = [
-    "A realistic Indian farmer working in a smart agricultural field with golden hour lighting",
-    "A futuristic cyberpunk city at sunset with neon reflections and flying cars",
-    "A luxury black car in a cinematic dark studio with dramatic rim lighting",
-    "A cute astronaut cat walking on mars with Earth in the background, digital painting",
+# ─── Preset Prompts ──────────────────────────────────────────────────────────
+PROMPT_1 = "A realistic Indian farmer working in a smart agricultural field with golden hour lighting"
+PROMPT_2 = "A futuristic cyberpunk city at sunset with neon reflections and flying autonomous vehicles"
+PROMPT_3 = "A luxury black sports car in a cinematic dark studio with dramatic neon rim lighting"
+PROMPT_4 = "A cute astronaut cat walking on Mars with Earth visible in the star-filled sky, digital painting"
+
+EXAMPLES_LIST = [
+    [PROMPT_1],
+    [PROMPT_2],
+    [PROMPT_3],
+    [PROMPT_4],
 ]
 
 theme = gr.themes.Base(
@@ -73,49 +83,47 @@ theme = gr.themes.Base(
 )
 
 css = """
-#title { text-align: center; }
+#title { text-align: center; margin-bottom: 8px; }
 #title h1 { 
     background: linear-gradient(135deg, #a78bfa, #f472b6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-size: 2.5rem;
+    font-size: 2.4rem;
     font-weight: 800;
-    margin-bottom: 0;
+    margin-bottom: 2px;
 }
-#title p { color: #94a3b8; margin-top: 4px; }
-#status-box { border-radius: 10px; padding: 10px; background: #1e293b; font-size: 0.9rem; }
-#gen-btn { height: 52px; font-size: 1.1rem; font-weight: 700; }
+#title p { color: #94a3b8; font-size: 0.95rem; }
+#status-box { border-radius: 8px; padding: 8px 14px; background: #1e293b; font-size: 0.88rem; }
+#gen-btn { height: 50px; font-size: 1.1rem; font-weight: 700; margin-top: 10px; }
 #output-image { border-radius: 12px; }
-.prompt-compare { background: #1e293b; border-radius: 10px; padding: 12px; font-size: 0.85rem; }
-footer { display: none !important; }
+.quick-chip { margin: 2px 0; }
 """
 
-with gr.Blocks(theme=theme, css=css, title="Chitraya AI - FLUX.1 Schnell Image Generator") as demo:
+with gr.Blocks(theme=theme, css=css, title="Chitraya AI - FLUX.1 Schnell Generator") as demo:
 
-    # Header
+    # Header & Status
     with gr.Column(elem_id="title"):
-        gr.HTML("<h1>🎨 Chitraya AI</h1><p>LangChain + Groq Prompt Engineering · FLUX.1 Schnell · ZeroGPU</p>")
+        gr.HTML("<h1>🎨 Chitraya AI</h1><p>LangChain Agent + Groq Prompt Optimization · FLUX.1 Schnell · ZeroGPU</p>")
 
-    # Status bar
     status_md = gr.Markdown(get_status(), elem_id="status-box")
 
     with gr.Row():
-        # Left panel: Input
+        # Left side: Prompt Controls
         with gr.Column(scale=1):
             prompt_input = gr.Textbox(
-                label="✏️ Describe your image",
-                placeholder="e.g. A futuristic cyberpunk city at sunset with neon reflections...",
+                label="✏️ Describe the image you want to create",
+                placeholder="Type your prompt here or click any example below...",
                 lines=4,
                 max_lines=6,
                 elem_id="prompt-input"
             )
 
-            gr.Examples(
-                examples=EXAMPLE_PROMPTS,
-                inputs=prompt_input,
-                label="💡 Quick Examples — click to use",
-                examples_per_page=4,
-            )
+            gr.Markdown("**💡 Quick Example Prompts (click to set):**")
+            with gr.Column():
+                btn1 = gr.Button(f"🌾 {PROMPT_1}", size="sm", elem_classes=["quick-chip"])
+                btn2 = gr.Button(f"🌃 {PROMPT_2}", size="sm", elem_classes=["quick-chip"])
+                btn3 = gr.Button(f"🏎️ {PROMPT_3}", size="sm", elem_classes=["quick-chip"])
+                btn4 = gr.Button(f"🚀 {PROMPT_4}", size="sm", elem_classes=["quick-chip"])
 
             generate_btn = gr.Button(
                 "✨ Generate Image",
@@ -123,29 +131,35 @@ with gr.Blocks(theme=theme, css=css, title="Chitraya AI - FLUX.1 Schnell Image G
                 elem_id="gen-btn"
             )
 
-            with gr.Accordion("📝 Prompt Details", open=False):
+            with gr.Accordion("📋 Prompt Inspection & LangChain Agent Output", open=False):
                 original_prompt_box = gr.Textbox(
                     label="Your Original Prompt",
                     interactive=False,
                     lines=2,
                 )
                 enhanced_prompt_box = gr.Textbox(
-                    label="🤖 Groq-Enhanced Prompt (sent to FLUX.1)",
+                    label="🤖 LangChain + Groq Enhanced Prompt (sent to FLUX.1)",
                     interactive=False,
                     lines=4,
                 )
 
-        # Right panel: Output
+        # Right side: Generated Output
         with gr.Column(scale=1):
             output_image = gr.Image(
-                label="🖼️ Generated Image",
+                label="🖼️ Generated AI Artwork",
                 type="pil",
                 elem_id="output-image",
-                height=512,
+                height=500,
                 show_download_button=True,
             )
 
-    # Wire up the generate button
+    # Wire up Quick Example buttons to set the prompt text immediately
+    btn1.click(fn=lambda: PROMPT_1, inputs=[], outputs=[prompt_input])
+    btn2.click(fn=lambda: PROMPT_2, inputs=[], outputs=[prompt_input])
+    btn3.click(fn=lambda: PROMPT_3, inputs=[], outputs=[prompt_input])
+    btn4.click(fn=lambda: PROMPT_4, inputs=[], outputs=[prompt_input])
+
+    # Wire up Generate button & Enter key
     generate_btn.click(
         fn=generate_image,
         inputs=[prompt_input],
@@ -153,7 +167,6 @@ with gr.Blocks(theme=theme, css=css, title="Chitraya AI - FLUX.1 Schnell Image G
         api_name="generate",
     )
 
-    # Also allow pressing Enter in the textbox
     prompt_input.submit(
         fn=generate_image,
         inputs=[prompt_input],
@@ -161,10 +174,8 @@ with gr.Blocks(theme=theme, css=css, title="Chitraya AI - FLUX.1 Schnell Image G
     )
 
     gr.Markdown(
-        "---\n*Powered by LangChain · Groq LLaMA-3 · FLUX.1 Schnell via HF Inference API · Gradio · ZeroGPU*",
-        elem_id="footer-note"
+        "---\n*Powered by LangChain · Groq LLaMA-3 · FLUX.1 Schnell via Hugging Face Inference API · Gradio*",
     )
 
-# ─── Launch ───────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", server_port=int(os.getenv("PORT", 7860)))

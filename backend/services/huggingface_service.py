@@ -30,16 +30,14 @@ class HuggingFaceService:
     """Service to interact with Hugging Face Inference API for FLUX.1 Schnell image generation."""
 
     @staticmethod
-    @gpu_decorator
     def generate_image(prompt: str) -> Tuple[str, Image.Image]:
         """
         Generates an image from a prompt using FLUX.1 Schnell on Hugging Face.
         Returns a tuple of (base64_data_uri, PIL_Image).
-        The @gpu_decorator satisfies ZeroGPU's startup detection on HF Spaces.
         """
         if not settings.is_hf_configured():
             raise HuggingFaceServiceError(
-                "Hugging Face API Token (HF_TOKEN) is not configured in .env. Please add your token to generate images.",
+                "Hugging Face API Token (HF_TOKEN) is not configured. Please add your token under Space Settings -> Secrets.",
                 status_code=401
             )
 
