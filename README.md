@@ -9,7 +9,7 @@ app_file: app.py
 pinned: false
 ---
 
-<!-- Trigger build update: Gradio 5.16.0 -->
+<!-- Chitraya AI - LangChain + FLUX.1 Schnell Image Generator -->
 
 
 # Chitraya AI - LangChain + FLUX.1 Schnell Image Generator

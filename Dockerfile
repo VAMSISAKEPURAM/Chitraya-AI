@@ -17,6 +17,6 @@ COPY --chown=user . .
 # Expose Hugging Face Spaces default port
 EXPOSE 7860
 
-# Run FastAPI app with Uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
-
+# Run via app.py (includes Gradio mount + FastAPI custom UI)
+# This is consistent with app_file: app.py in README.md frontmatter
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]

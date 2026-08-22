@@ -23,7 +23,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS for local development
+# Enable CORS for local development and HF Spaces iframe embedding
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -83,13 +83,24 @@ async def generate_image(request: GenerateImageRequest):
         )
 
 # Mount static frontend files
-static_dir = os.path.join(os.path.dirname(__file__), "static")
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     @app.get("/")
     async def serve_index():
-        return FileResponse(os.path.join(static_dir, "index.html"))
+        index_path = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        return JSONResponse({"message": "Chitraya AI API is running. Static UI not found."})
+else:
+    @app.get("/")
+    async def serve_root():
+        return JSONResponse({
+            "message": "Chitraya AI - LangChain + FLUX.1 Schnell Image Generator API",
+            "status": "online",
+            "docs": "/docs"
+        })
 
 if __name__ == "__main__":
     import uvicorn

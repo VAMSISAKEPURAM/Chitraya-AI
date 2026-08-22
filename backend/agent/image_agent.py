@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import datetime
 from typing import Dict, Any
 
@@ -38,9 +39,12 @@ class LangChainImageAgent:
             from langchain_groq import ChatGroq
             logger.info(f"Enhancing prompt using Groq LLM ({settings.GROQ_MODEL})...")
             
+            # Set env var as fallback authentication method
+            os.environ.setdefault("GROQ_API_KEY", settings.GROQ_API_KEY)
+            
             llm = ChatGroq(
-                model_name=settings.GROQ_MODEL,
-                groq_api_key=settings.GROQ_API_KEY,
+                model=settings.GROQ_MODEL,
+                api_key=settings.GROQ_API_KEY,
                 temperature=0.7,
                 max_tokens=250
             )
