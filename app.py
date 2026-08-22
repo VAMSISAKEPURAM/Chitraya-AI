@@ -1,11 +1,10 @@
 import os
 import gradio as gr
 
-# ─── Import FastAPI app (registers all routes: /api/health, /api/generate-image, /) ─
+# ─── Import FastAPI app (all routes: /api/health, /api/generate-image, /, /static) ─
 from main import app as fastapi_app
 
-# ─── Gradio UI (HF Spaces entry point) ───────────────────────────────────────
-# Minimal Gradio Blocks — the real custom glassmorphism UI is served at "/" via FastAPI.
+# ─── Gradio UI ────────────────────────────────────────────────────────────────
 demo = gr.Blocks(title="Chitraya AI - FLUX.1 Schnell Image Generator")
 
 with demo:
@@ -16,8 +15,11 @@ with demo:
     )
 
 # ─── Mount Gradio at /gradio on the FastAPI app ──────────────────────────────
-# gr.mount_gradio_app mounts the Gradio Blocks into the existing FastAPI app.
-# HF Gradio SDK detects the `app` ASGI object and serves it on port 7860.
-# DO NOT call uvicorn.run() here — HF handles the server launch automatically.
-# For local development, run: uvicorn app:app --host 0.0.0.0 --port 7860
+# gr.mount_gradio_app returns an ASGI app combining FastAPI routes + Gradio UI.
 app = gr.mount_gradio_app(fastapi_app, demo, path="/gradio")
+
+# ─── Launch (blocking) ───────────────────────────────────────────────────────
+# IMPORTANT: This must be at module level (NOT inside __main__) for HF Gradio SDK.
+# HF runs `python app.py` as a script — demo.launch() keeps the process alive.
+# Without this blocking call, the script exits immediately (Exit code: 0 error).
+demo.launch(server_name="0.0.0.0", server_port=7860)
