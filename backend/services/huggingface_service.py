@@ -9,6 +9,15 @@ from backend.utils.config import settings
 
 logger = logging.getLogger("huggingface_service")
 
+# Import spaces for ZeroGPU compatibility on HF Spaces.
+# Falls back to a no-op decorator when running locally.
+try:
+    import spaces
+    gpu_decorator = spaces.GPU
+except ImportError:
+    def gpu_decorator(fn):
+        return fn
+
 class HuggingFaceServiceError(Exception):
     """Custom exception for Hugging Face Service errors with user-friendly messages."""
     def __init__(self, message: str, status_code: int = 500):
@@ -21,10 +30,12 @@ class HuggingFaceService:
     """Service to interact with Hugging Face Inference API for FLUX.1 Schnell image generation."""
 
     @staticmethod
+    @gpu_decorator
     def generate_image(prompt: str) -> Tuple[str, Image.Image]:
         """
         Generates an image from a prompt using FLUX.1 Schnell on Hugging Face.
         Returns a tuple of (base64_data_uri, PIL_Image).
+        The @gpu_decorator satisfies ZeroGPU's startup detection on HF Spaces.
         """
         if not settings.is_hf_configured():
             raise HuggingFaceServiceError(
