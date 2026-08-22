@@ -1,7 +1,6 @@
 import os
 import io
 import base64
-import spaces
 import gradio as gr
 from PIL import Image
 
@@ -9,13 +8,20 @@ from backend.utils.config import settings
 from backend.agent.image_agent import image_agent
 from backend.services.huggingface_service import HuggingFaceServiceError
 
-# ─── Core Generation Function (ZeroGPU-decorated) ────────────────────────────
-@spaces.GPU(duration=60)
+try:
+    import spaces
+    gpu_decorator = spaces.GPU(duration=60)
+except Exception:
+    def gpu_decorator(fn):
+        return fn
+
+# ─── Core Generation Function (ZeroGPU-compatible) ────────────────────────────
+@gpu_decorator
 def generate_image(prompt: str):
     """
     Main generation pipeline:
     User Prompt → Groq LLM Enhancement → FLUX.1 Schnell → Image
-    This function is decorated with @spaces.GPU for ZeroGPU compatibility.
+    Decorated for ZeroGPU compatibility with local fallback.
     """
     if not prompt or not prompt.strip():
         raise gr.Error("Please enter or select a prompt before clicking Generate.")
