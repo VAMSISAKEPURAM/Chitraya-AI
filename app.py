@@ -98,7 +98,29 @@ css = """
 .quick-chip { margin: 2px 0; }
 """
 
-with gr.Blocks(title="Chitraya AI - FLUX.1 Schnell Generator") as demo:
+import inspect
+
+# Dynamically route theme and css to Blocks or launch depending on Gradio version (Gradio 5 vs 6)
+blocks_params = inspect.signature(gr.Blocks.__init__).parameters
+launch_params = inspect.signature(gr.Blocks.launch).parameters
+
+blocks_kwargs = {"title": "Chitraya AI - FLUX.1 Schnell Generator"}
+launch_kwargs = {
+    "server_name": "0.0.0.0",
+    "server_port": int(os.getenv("PORT", 7860)),
+}
+
+if "theme" in blocks_params:
+    blocks_kwargs["theme"] = theme
+elif "theme" in launch_params:
+    launch_kwargs["theme"] = theme
+
+if "css" in blocks_params:
+    blocks_kwargs["css"] = css
+elif "css" in launch_params:
+    launch_kwargs["css"] = css
+
+with gr.Blocks(**blocks_kwargs) as demo:
 
     # Header & Status
     with gr.Column(elem_id="title"):
@@ -172,14 +194,10 @@ with gr.Blocks(title="Chitraya AI - FLUX.1 Schnell Generator") as demo:
     )
 
     gr.Markdown(
-        "---\n*Powered by LangChain · Groq LLaMA-3 · FLUX.1 Schnell via Hugging Face Inference API · Gradio*",
+        "---\n*Powered by LangChain · Groq openai/gpt-oss-120b · FLUX.1 Schnell via Hugging Face Inference API · Gradio*",
     )
 
 if __name__ == "__main__":
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=int(os.getenv("PORT", 7860)),
-        theme=theme,
-        css=css,
-    )
+    demo.launch(**launch_kwargs)
+
 
