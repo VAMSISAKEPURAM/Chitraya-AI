@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any
 
 from langchain_core.prompts import ChatPromptTemplate
@@ -94,7 +94,7 @@ class LangChainImageAgent:
             "enhanced_prompt": enhanced_prompt,
             "image": tool_result["image"],
             "model": settings.IMAGE_MODEL,
-            "timestamp": datetime.utcnow().isoformat() + "Z"
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
 # Global singleton agent instance

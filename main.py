@@ -10,6 +10,8 @@ from backend.utils.config import settings
 from backend.agent.image_agent import image_agent
 from backend.services.huggingface_service import HuggingFaceServiceError
 
+from starlette.concurrency import run_in_threadpool
+
 # Configure Logging
 logging.basicConfig(
     level=logging.INFO,
@@ -52,6 +54,7 @@ async def generate_image(request: GenerateImageRequest):
     Generate an AI image based on user prompt.
     Uses LangChain + Groq LLM to optimize the prompt,
     and FLUX.1 Schnell on Hugging Face to generate the image.
+    Executes in a worker threadpool to keep the async event loop responsive.
     """
     clean_prompt = request.prompt.strip()
     if not clean_prompt:
@@ -61,7 +64,7 @@ async def generate_image(request: GenerateImageRequest):
         )
 
     try:
-        result = image_agent.generate(clean_prompt)
+        result = await run_in_threadpool(image_agent.generate, clean_prompt)
         return result
 
     except HuggingFaceServiceError as hf_err:
@@ -102,8 +105,18 @@ else:
             "docs": "/docs"
         })
 
+# Mount Gradio Blocks interface at /gradio for unified access
+try:
+    from app import demo
+    import gradio as gr
+    app = gr.mount_gradio_app(app, demo, path="/gradio")
+    logger.info("Mounted Gradio UI at /gradio")
+except Exception as gradio_err:
+    logger.warning(f"Could not mount Gradio UI at /gradio: {gradio_err}")
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 7860))
     host = os.getenv("HOST", "0.0.0.0")
     uvicorn.run("main:app", host=host, port=port, reload=False)
+

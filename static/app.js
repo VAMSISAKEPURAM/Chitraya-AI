@@ -58,7 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Groq LLM Status
             if (data.groq_configured) {
                 groqStatus.querySelector('.dot').className = 'dot green';
-                groqText.textContent = 'Active (' + data.groq_model.split('-')[0] + ')';
+                const rawModel = data.groq_model || 'gpt-oss-120b';
+                const modelName = rawModel.includes('/') ? rawModel.split('/')[1] : rawModel;
+                groqText.textContent = 'Active (' + modelName + ')';
             } else {
                 groqStatus.querySelector('.dot').className = 'dot yellow';
                 groqText.textContent = 'Fallback Mode';
@@ -141,7 +143,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ prompt: prompt })
             });
 
-            const data = await response.json();
+            let data;
+            try {
+                data = await response.json();
+            } catch (_) {
+                data = { detail: `Server error (${response.status}: ${response.statusText || 'Unknown'})` };
+            }
 
             if (!response.ok) {
                 throw new Error(data.detail || 'Failed to generate image');
@@ -319,16 +326,25 @@ document.addEventListener('DOMContentLoaded', () => {
             timestamp: item.timestamp || new Date().toISOString()
         });
 
-        // Limit to max 20 history items to save localStorage memory
-        if (history.length > 20) {
-            history = history.slice(0, 20);
+        // Limit to max 10 history items to preserve browser memory
+        if (history.length > 10) {
+            history = history.slice(0, 10);
         }
 
-        try {
-            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-            loadHistory();
-        } catch (e) {
-            console.warn('LocalStorage full, quota exceeded:', e);
+        // Try saving, iteratively trimming oldest if localStorage quota exceeded
+        while (history.length > 0) {
+            try {
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+                loadHistory();
+                break;
+            } catch (e) {
+                console.warn('LocalStorage quota limit reached, trimming oldest item...', e);
+                history.pop();
+                if (history.length === 0) {
+                    try { localStorage.removeItem(HISTORY_KEY); } catch (_) {}
+                    break;
+                }
+            }
         }
     }
 

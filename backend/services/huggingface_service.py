@@ -28,7 +28,7 @@ class HuggingFaceService:
         """
         if not settings.is_hf_configured():
             raise HuggingFaceServiceError(
-                "Hugging Face API Token (HF_TOKEN) is not configured. Please add your token in Space Settings -> Secrets.",
+                "Hugging Face API Token (HF_TOKEN) is not configured. Please add your token in .env or Space Settings -> Secrets.",
                 status_code=401
             )
 
@@ -43,6 +43,12 @@ class HuggingFaceService:
             
             # FLUX.1 Schnell text-to-image call
             image = client.text_to_image(prompt=prompt, model=model)
+
+            # Ensure image is a valid PIL Image
+            if isinstance(image, bytes):
+                image = Image.open(io.BytesIO(image))
+            elif not isinstance(image, Image.Image):
+                image = Image.open(io.BytesIO(bytes(image)))
             
             # Convert PIL Image to Base64 data URI
             buffered = io.BytesIO()
@@ -59,7 +65,7 @@ class HuggingFaceService:
     @staticmethod
     def _generate_via_http(prompt: str, model: str, token: str) -> Tuple[str, Image.Image]:
         """Fallback direct HTTP request implementation to Hugging Face Serverless Inference API."""
-        api_url = f"https://api-inference.huggingface.co/models/{model}"
+        api_url = f"https://router.huggingface.co/hf-inference/models/{model}"
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -87,7 +93,7 @@ class HuggingFaceService:
 
         if response.status_code == 401:
             raise HuggingFaceServiceError(
-                "Invalid or unauthorized Hugging Face token. Please check HF_TOKEN under Space Settings -> Secrets.",
+                "Invalid or unauthorized Hugging Face token. Please check HF_TOKEN in .env or Space Settings -> Secrets.",
                 status_code=401
             )
         elif response.status_code == 429:

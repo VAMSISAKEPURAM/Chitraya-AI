@@ -98,7 +98,7 @@ css = """
 .quick-chip { margin: 2px 0; }
 """
 
-with gr.Blocks(theme=theme, css=css, title="Chitraya AI - FLUX.1 Schnell Generator") as demo:
+with gr.Blocks(title="Chitraya AI - FLUX.1 Schnell Generator") as demo:
 
     # Header & Status
     with gr.Column(elem_id="title"):
@@ -149,7 +149,6 @@ with gr.Blocks(theme=theme, css=css, title="Chitraya AI - FLUX.1 Schnell Generat
                 type="pil",
                 elem_id="output-image",
                 height=500,
-                show_download_button=True,
             )
 
     # Wire up Quick Example buttons to set the prompt text immediately
@@ -177,4 +176,10 @@ with gr.Blocks(theme=theme, css=css, title="Chitraya AI - FLUX.1 Schnell Generat
     )
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=int(os.getenv("PORT", 7860)))
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=int(os.getenv("PORT", 7860)),
+        theme=theme,
+        css=css,
+    )
+
