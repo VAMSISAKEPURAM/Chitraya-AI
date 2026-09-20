@@ -37,13 +37,19 @@ app.add_middleware(
 class GenerateImageRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=1000, description="Natural language image prompt")
 
+class TransformImageRequest(BaseModel):
+    image: str = Field(..., description="Base64 encoded image or data URI")
+    prompt: str = Field("", description="Custom transformation instructions")
+    style_preset: str = Field("", description="Optional style preset")
+
 @app.get("/api/health")
 async def health_check():
     """Health check endpoint to verify backend status and token configurations."""
     return {
         "status": "online",
         "hf_configured": settings.is_hf_configured(),
-        "image_model": settings.IMAGE_MODEL
+        "image_model": settings.IMAGE_MODEL,
+        "features": ["text-to-image", "photo-transform"]
     }
 
 @app.post("/api/generate-image")
@@ -80,6 +86,44 @@ async def generate_image(request: GenerateImageRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Image generation failed: {str(err)}"
+        )
+
+@app.post("/api/transform-image")
+async def transform_image_endpoint(request: TransformImageRequest):
+    """
+    Apply visual edits or artistic styles to an uploaded photo.
+    """
+    if not request.image:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Image data is required."
+        )
+
+    try:
+        result = await run_in_threadpool(
+            image_agent.transform_image,
+            request.image,
+            request.prompt,
+            request.style_preset
+        )
+        return result
+
+    except HuggingFaceServiceError as hf_err:
+        logger.error(f"HuggingFace Service Error: {hf_err.message}")
+        raise HTTPException(
+            status_code=hf_err.status_code,
+            detail=hf_err.message
+        )
+    except ValueError as val_err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(val_err)
+        )
+    except Exception as err:
+        logger.exception("Unexpected error during image transformation")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Image transformation failed: {str(err)}"
         )
 
 # Mount static frontend files
