@@ -1,6 +1,7 @@
 import os
 import io
 import base64
+import logging
 import gradio as gr
 from PIL import Image
 
@@ -8,31 +9,31 @@ from backend.utils.config import settings
 from backend.agent.image_agent import image_agent
 from backend.services.huggingface_service import HuggingFaceServiceError
 
-try:
-    import spaces
-    gpu_decorator = spaces.GPU(duration=60)
-except Exception:
-    def gpu_decorator(fn):
-        return fn
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logger = logging.getLogger("chitraya_app")
 
-# ─── Core Generation Function (ZeroGPU-compatible) ────────────────────────────
-@gpu_decorator
+# ─── Core Generation Function ─────────────────────────────────────────────────
+# NOTE: No @spaces.GPU decorator needed — this app calls the remote HF Inference
+# API and does NOT run any model locally. ZeroGPU allocation is unnecessary.
 def generate_image(prompt: str):
     """
     Main generation pipeline:
-    User Prompt → Groq LLM Enhancement → FLUX.1 Schnell → Image
-    Decorated for ZeroGPU compatibility with local fallback.
+    User Prompt → Groq LLM Enhancement → FLUX.1 Schnell (remote API) → Image
     """
     if not prompt or not prompt.strip():
         raise gr.Error("Please enter or select a prompt before clicking Generate.")
 
     clean_prompt = prompt.strip()
+    logger.info(f"Generate request received: '{clean_prompt[:80]}...'")
 
     try:
         result = image_agent.generate(clean_prompt)
+        logger.info("Image generation completed successfully.")
     except HuggingFaceServiceError as e:
+        logger.error(f"HuggingFace Service Error: {e.message}")
         raise gr.Error(f"Hugging Face API Error: {e.message}")
     except Exception as e:
+        logger.error(f"Generation Error: {str(e)}", exc_info=True)
         raise gr.Error(f"Generation Error: {str(e)}")
 
     # Parse image data
@@ -44,6 +45,7 @@ def generate_image(prompt: str):
     elif isinstance(data_uri, Image.Image):
         image = data_uri
     else:
+        logger.error(f"Unexpected image data type: {type(data_uri)}")
         raise gr.Error("Failed to parse image from generator output.")
 
     return (
