@@ -104,7 +104,7 @@ css = """
 
 import inspect
 
-# Dynamically route theme and css to Blocks or launch depending on Gradio version (Gradio 5 vs 6)
+# Dynamically route theme, css, and ssr_mode to Blocks or launch depending on Gradio version
 blocks_params = inspect.signature(gr.Blocks.__init__).parameters
 launch_params = inspect.signature(gr.Blocks.launch).parameters
 
@@ -112,7 +112,11 @@ blocks_kwargs = {"title": "Chitraya AI - FLUX.1 Schnell Generator"}
 launch_kwargs = {
     "server_name": "0.0.0.0",
     "server_port": int(os.getenv("PORT", 7860)),
+    "show_error": True,
 }
+
+if "ssr_mode" in launch_params:
+    launch_kwargs["ssr_mode"] = False
 
 if "theme" in blocks_params:
     blocks_kwargs["theme"] = theme
@@ -205,6 +209,8 @@ with gr.Blocks(**blocks_kwargs) as demo:
     gr.Markdown(
         "---\n*Powered by LangChain · Groq openai/gpt-oss-120b · FLUX.1 Schnell via Hugging Face Inference API · Gradio*",
     )
+
+demo.queue(default_concurrency_limit=10)
 
 if __name__ == "__main__":
     demo.launch(**launch_kwargs)
