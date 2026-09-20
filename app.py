@@ -12,9 +12,17 @@ from backend.services.huggingface_service import HuggingFaceServiceError
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("chitraya_app")
 
+try:
+    import spaces
+    @spaces.GPU
+    def _zerogpu_init():
+        """ZeroGPU startup validation function."""
+        return True
+except Exception:
+    def _zerogpu_init():
+        return False
+
 # ─── Core Generation Function ─────────────────────────────────────────────────
-# NOTE: No @spaces.GPU decorator needed — this app calls the remote HF Inference
-# API and does NOT run any model locally. ZeroGPU allocation is unnecessary.
 def generate_image(prompt: str):
     """
     Main generation pipeline:
