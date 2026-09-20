@@ -26,7 +26,7 @@ except Exception:
 def generate_image(prompt: str):
     """
     Main generation pipeline:
-    User Prompt → Groq LLM Enhancement → FLUX.1 Schnell (remote API) → Image
+    User Prompt → Direct FLUX.1 Schnell / Fallback Generation → Image
     """
     if not prompt or not prompt.strip():
         raise gr.Error("Please enter or select a prompt before clicking Generate.")
@@ -59,17 +59,14 @@ def generate_image(prompt: str):
     model_info = result.get("model", settings.IMAGE_MODEL)
     return (
         image,
-        result.get("enhanced_prompt", clean_prompt),
-        result.get("original_prompt", clean_prompt),
-        f"Generated via: {model_info}"
+        clean_prompt,
+        f"⚡ {model_info}"
     )
 
 def get_status():
     hf_ok = settings.is_hf_configured()
-    groq_ok = settings.is_groq_configured()
     hf_icon = "🟢 Ready" if hf_ok else "🔴 Missing Secret (HF_TOKEN)"
-    groq_icon = "🟢 Active (LLM prompt expander)" if groq_ok else "🟡 Rule-based mode"
-    return f"**Hugging Face Inference:** {hf_icon} &nbsp;|&nbsp; **Groq Agent:** {groq_icon} &nbsp;|&nbsp; **Model:** `{settings.IMAGE_MODEL}`"
+    return f"**Hugging Face Inference:** {hf_icon} &nbsp;|&nbsp; **Mode:** Direct User Prompt &nbsp;|&nbsp; **Model:** `{settings.IMAGE_MODEL}`"
 
 # ─── Preset Prompts ──────────────────────────────────────────────────────────
 PROMPT_1 = "A realistic Indian farmer working in a smart agricultural field with golden hour lighting"
@@ -140,7 +137,7 @@ with gr.Blocks(**blocks_kwargs) as demo:
 
     # Header & Status
     with gr.Column(elem_id="title"):
-        gr.HTML("<h1>🎨 Chitraya AI</h1><p>LangChain Agent + Groq Prompt Optimization · FLUX.1 Schnell · ZeroGPU</p>")
+        gr.HTML("<h1>🎨 Chitraya AI</h1><p>Direct Prompt-to-Image Generation · FLUX.1 Schnell</p>")
 
     status_md = gr.Markdown(get_status(), elem_id="status-box")
 
@@ -168,21 +165,16 @@ with gr.Blocks(**blocks_kwargs) as demo:
                 elem_id="gen-btn"
             )
 
-            with gr.Accordion("📋 Prompt Inspection & LangChain Agent Output", open=False):
+            with gr.Accordion("📋 Prompt & Model Details", open=False):
                 model_used_box = gr.Textbox(
                     label="⚡ Model Engine Used",
                     interactive=False,
                     lines=1,
                 )
                 original_prompt_box = gr.Textbox(
-                    label="Your Original Prompt",
+                    label="Prompt Sent to Model",
                     interactive=False,
                     lines=2,
-                )
-                enhanced_prompt_box = gr.Textbox(
-                    label="🤖 LangChain + Groq Enhanced Prompt (sent to Model)",
-                    interactive=False,
-                    lines=4,
                 )
 
         # Right side: Generated Output
@@ -204,18 +196,18 @@ with gr.Blocks(**blocks_kwargs) as demo:
     generate_btn.click(
         fn=generate_image,
         inputs=[prompt_input],
-        outputs=[output_image, enhanced_prompt_box, original_prompt_box, model_used_box],
+        outputs=[output_image, original_prompt_box, model_used_box],
         api_name="generate",
     )
 
     prompt_input.submit(
         fn=generate_image,
         inputs=[prompt_input],
-        outputs=[output_image, enhanced_prompt_box, original_prompt_box, model_used_box],
+        outputs=[output_image, original_prompt_box, model_used_box],
     )
 
     gr.Markdown(
-        "---\n*Powered by LangChain · Groq openai/gpt-oss-120b · FLUX.1 Schnell via Hugging Face Inference API · Gradio*",
+        "---\n*Powered by FLUX.1 Schnell via Hugging Face Inference API · Gradio*",
     )
 
 demo.queue(default_concurrency_limit=10)

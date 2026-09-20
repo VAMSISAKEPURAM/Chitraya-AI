@@ -21,7 +21,7 @@ logger = logging.getLogger("api_server")
 
 app = FastAPI(
     title="Chitraya AI - FLUX.1 Schnell Generator API",
-    description="API for AI Image Generation using LangChain, Groq LLM, and FLUX.1 Schnell on Hugging Face",
+    description="API for Direct AI Image Generation using FLUX.1 Schnell on Hugging Face",
     version="1.0.0"
 )
 
@@ -43,17 +43,14 @@ async def health_check():
     return {
         "status": "online",
         "hf_configured": settings.is_hf_configured(),
-        "groq_configured": settings.is_groq_configured(),
-        "image_model": settings.IMAGE_MODEL,
-        "groq_model": settings.GROQ_MODEL
+        "image_model": settings.IMAGE_MODEL
     }
 
 @app.post("/api/generate-image")
 async def generate_image(request: GenerateImageRequest):
     """
-    Generate an AI image based on user prompt.
-    Uses LangChain + Groq LLM to optimize the prompt,
-    and FLUX.1 Schnell on Hugging Face to generate the image.
+    Generate an AI image based on direct user prompt.
+    Uses FLUX.1 Schnell on Hugging Face to generate the image.
     Executes in a worker threadpool to keep the async event loop responsive.
     """
     clean_prompt = request.prompt.strip()
