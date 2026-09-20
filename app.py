@@ -48,10 +48,12 @@ def generate_image(prompt: str):
         logger.error(f"Unexpected image data type: {type(data_uri)}")
         raise gr.Error("Failed to parse image from generator output.")
 
+    model_info = result.get("model", settings.IMAGE_MODEL)
     return (
         image,
         result.get("enhanced_prompt", clean_prompt),
         result.get("original_prompt", clean_prompt),
+        f"Generated via: {model_info}"
     )
 
 def get_status():
@@ -155,13 +157,18 @@ with gr.Blocks(**blocks_kwargs) as demo:
             )
 
             with gr.Accordion("📋 Prompt Inspection & LangChain Agent Output", open=False):
+                model_used_box = gr.Textbox(
+                    label="⚡ Model Engine Used",
+                    interactive=False,
+                    lines=1,
+                )
                 original_prompt_box = gr.Textbox(
                     label="Your Original Prompt",
                     interactive=False,
                     lines=2,
                 )
                 enhanced_prompt_box = gr.Textbox(
-                    label="🤖 LangChain + Groq Enhanced Prompt (sent to FLUX.1)",
+                    label="🤖 LangChain + Groq Enhanced Prompt (sent to Model)",
                     interactive=False,
                     lines=4,
                 )
@@ -185,14 +192,14 @@ with gr.Blocks(**blocks_kwargs) as demo:
     generate_btn.click(
         fn=generate_image,
         inputs=[prompt_input],
-        outputs=[output_image, enhanced_prompt_box, original_prompt_box],
+        outputs=[output_image, enhanced_prompt_box, original_prompt_box, model_used_box],
         api_name="generate",
     )
 
     prompt_input.submit(
         fn=generate_image,
         inputs=[prompt_input],
-        outputs=[output_image, enhanced_prompt_box, original_prompt_box],
+        outputs=[output_image, enhanced_prompt_box, original_prompt_box, model_used_box],
     )
 
     gr.Markdown(

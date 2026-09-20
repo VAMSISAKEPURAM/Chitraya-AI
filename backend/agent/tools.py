@@ -7,13 +7,14 @@ logger = logging.getLogger("agent_tools")
 @tool
 def flux_image_generation_tool(prompt: str) -> dict:
     """
-    Invokes the FLUX.1 Schnell image generation model on Hugging Face using the provided optimized prompt.
-    Returns a dictionary containing the base64 image data URI string.
+    Invokes the image generation model pipeline on Hugging Face using the provided optimized prompt.
+    Returns a dictionary containing the base64 image data URI string and model used.
     """
-    logger.info(f"Invoking FLUX.1 Schnell tool with prompt: {prompt[:80]}...")
-    data_uri, _ = HuggingFaceService.generate_image(prompt)
+    logger.info(f"Invoking image generation tool with prompt: {prompt[:80]}...")
+    data_uri, _, model_used = HuggingFaceService.generate_image(prompt)
     return {
         "status": "success",
         "image": data_uri,
-        "prompt": prompt
+        "prompt": prompt,
+        "model": model_used
     }

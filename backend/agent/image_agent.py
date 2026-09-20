@@ -93,7 +93,7 @@ class LangChainImageAgent:
             "original_prompt": clean_prompt,
             "enhanced_prompt": enhanced_prompt,
             "image": tool_result["image"],
-            "model": settings.IMAGE_MODEL,
+            "model": tool_result.get("model", settings.IMAGE_MODEL),
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
